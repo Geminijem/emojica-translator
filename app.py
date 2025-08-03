@@ -3,8 +3,8 @@ import random
 import json
 from fpdf import FPDF
 import base64
-import pyttsx3
-import speech_recognition as sr
+from gtts import gTTS
+import tempfile
 import os
 
 # ✅ Emojica Dictionary
@@ -39,21 +39,12 @@ def emojica_to_english(emoji_sentence):
     return " ".join([emoji_to_english.get(e, f"[{e}]") for e in symbols])
 
 def speak_text(text):
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
-
-def record_voice():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎙️ Listening...")
-        audio = r.listen(source, phrase_time_limit=5)
-    try:
-        text = r.recognize_google(audio)
-        return text
-    except:
-        st.error("❌ Could not recognize voice. Try again.")
-        return ""
+    tts = gTTS(text=text, lang='en')
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+        tts.save(tmp.name)
+        audio_file = open(tmp.name, 'rb')
+        audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format='audio/mp3')
 
 # ✅ Save/Load Progress
 def save_progress():
@@ -81,10 +72,6 @@ st.title("📘 Emojica Translator")
 # 🔤 Text Input Translator
 st.header("📝 English ➡️ Emojica")
 text_input = st.text_area("💬 Type a full English sentence (supports complex ones):")
-
-if st.button("🎤 Voice Input"):
-    text_input = record_voice()
-    st.write(f"You said: {text_input}")
 
 if st.button("Translate to Emojica"):
     if text_input:
