@@ -25,34 +25,38 @@ def english_to_emojica(sentence):
         translated.append(emoji)
     return " ".join(translated)
 
-# ✅ Streamlit UI
+# ✅ UI Title
 st.title("📘 Emojica Translator")
 
-# Speech-to-text input injection
-st.markdown("🎙️ Tap mic to speak (mobile only):")
+# ✅ Input placeholder (speech result will be injected here)
+user_input = st.text_input("💬 Type or speak your English sentence:", key="speech_input")
+
+# ✅ JavaScript: Speech Recognition to input field (works on mobile)
 st.components.v1.html("""
-    <input type="text" id="speechInput" style="display:none;" />
-    <button onclick="startDictation()">🎤 Speak</button>
     <script>
-    function startDictation() {
-        var recognition = new webkitSpeechRecognition();
-        recognition.lang = "en-US";
-        recognition.onresult = function(event) {
-            var text = event.results[0][0].transcript;
-            const inputBox = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-            if (inputBox) {
-                inputBox.value = text;
-                inputBox.dispatchEvent(new Event('input', { bubbles: true }));
-            }
+    const loadMic = () => {
+        const btn = document.getElementById("micButton");
+        const input = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+        btn.onclick = () => {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                input.value = transcript;
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            };
+            recognition.onerror = function(event) {
+                alert("Mic error: " + event.error);
+            };
+            recognition.start();
         };
-        recognition.start();
-    }
+    };
+    window.addEventListener("DOMContentLoaded", loadMic);
     </script>
+    <button id="micButton" style="font-size:18px; padding:8px; margin-top:10px;">🎤 Tap to Speak</button>
 """, height=100)
 
-# Manual or speech-based input
-user_input = st.text_input("💬 Or type your English sentence:")
-
+# ✅ Translate and Display Result
 if user_input:
     result = english_to_emojica(user_input)
     st.markdown("### ➡️ Emojica:")
