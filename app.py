@@ -43,23 +43,47 @@ if st.button("Translate"):
 # 🎯 Game Section
 st.header("🎯 Emoji of the Day - Guess the Meaning")
 
-# 🧠 State to keep the same emoji
+# 🧠 State to keep the same emoji and score/history
 if "emoji_question" not in st.session_state:
     st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
 if "score" not in st.session_state:
     st.session_state.score = 0
+if "history" not in st.session_state:
+    st.session_state.history = []
 
+# 🎮 Quiz UI
 st.subheader(f"🧐 What does this emoji mean? → {st.session_state.emoji_question}")
 user_guess = st.text_input("Your guess (one word, lowercase):", key="quiz_guess")
 
 if st.button("Submit Guess"):
     correct = emoji_to_english[st.session_state.emoji_question]
-    if user_guess.strip().lower() == correct:
+    user_answer = user_guess.strip().lower()
+    is_correct = user_answer == correct
+
+    if is_correct:
         st.success("✅ Correct!")
         st.session_state.score += 1
-        st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
     else:
         st.error(f"❌ Wrong. It means **{correct}**.")
-        st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
+
+    # Save to history
+    st.session_state.history.append({
+        "emoji": st.session_state.emoji_question,
+        "your_answer": user_answer,
+        "correct_answer": correct,
+        "status": "✅" if is_correct else "❌"
+    })
+
+    # Get new emoji
+    st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
 
 st.info(f"🏆 Your score: {st.session_state.score}")
+
+# 🧾 Show Game History
+if st.session_state.history:
+    st.header("📜 Game History")
+    for entry in reversed(st.session_state.history):  # newest first
+        st.markdown(
+            f"{entry['emoji']} → You: **{entry['your_answer']}** | "
+            f"Correct: **{entry['correct_answer']}** | {entry['status']}"
+        )
