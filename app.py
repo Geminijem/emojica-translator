@@ -39,18 +39,19 @@ function startDictation() {
     recognition.lang = "en-US";
     recognition.onresult = function(event) {
         document.getElementById('result').value = event.results[0][0].transcript;
-        document.dispatchEvent(new Event("input"));
+        const input = new Event('input', { bubbles: true });
+        document.getElementById('result').dispatchEvent(input);
     }
     recognition.start();
 }
 </script>
 """, height=130)
 
-user_input = st.text_input("💬 Or type your English sentence:", key="speech_input")
-if st.button("Translate to Emojica"):
-    if user_input:
-        result = english_to_emojica(user_input)
-        st.markdown("### ➡️ Emojica:")
-        st.markdown(f"**{result}**")
-    else:
-        st.warning("Please enter or speak a sentence.")
+# Sync voice input
+speech_input = st.text_input("💬 Or type your English sentence:", key="speech_input")
+
+# Automatically translate if input exists
+if speech_input:
+    result = english_to_emojica(speech_input)
+    st.markdown("### ➡️ Emojica:")
+    st.markdown(f"**{result}**")
