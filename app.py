@@ -1,20 +1,10 @@
-import streamlit as st
-import datetime
+# ✍️ Let user guess the meaning
+user_guess = st.text_input("What does this emoji mean?")
 
-# 🎯 Emojica Dictionary
-emoji_to_english = {
-    "🙋": "i", "👉": "you", "👥": "we", "🤖": "ai",
-    "📚": "study", "🏃": "go", "😴": "sleep", "❤️": "love",
-    "✅": "yes", "❌": "no", "👀": "see", "🔥": "lot"
-}
-
-# 🗓️ Select today's emoji
-emojis = list(emoji_to_english.keys())
-index = datetime.datetime.now().day % len(emojis)
-today_emoji = emojis[index]
-
-# 🧩 UI
-st.title("📅 Daily Emojica Challenge")
-st.markdown("Guess the meaning of today’s emoji:")
-
-st.markdown(f"## {today_emoji}")
+# ✅ Check answer
+if user_guess:
+    correct_answer = emoji_to_english[today_emoji]
+    if user_guess.strip().lower() == correct_answer:
+        st.success("🎉 Correct! Great job!")
+    else:
+        st.error(f"❌ Oops! The correct answer is **{correct_answer}**.")
