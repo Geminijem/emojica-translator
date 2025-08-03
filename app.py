@@ -28,28 +28,30 @@ def english_to_emojica(sentence):
 # ✅ Streamlit UI
 st.title("📘 Emojica Translator")
 
-# Microphone Button
+# Speech-to-text input injection
 st.markdown("🎙️ Tap mic to speak (mobile only):")
 st.components.v1.html("""
-<button onclick="startDictation()">🎤 Speak</button>
-
-<script>
-function startDictation() {
-    var recognition = new webkitSpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.onresult = function(event) {
-        var speechText = event.results[0][0].transcript;
-        const newUrl = window.location.href.split('?')[0] + "?input=" + encodeURIComponent(speechText);
-        window.location.href = newUrl;
+    <input type="text" id="speechInput" style="display:none;" />
+    <button onclick="startDictation()">🎤 Speak</button>
+    <script>
+    function startDictation() {
+        var recognition = new webkitSpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.onresult = function(event) {
+            var text = event.results[0][0].transcript;
+            const inputBox = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+            if (inputBox) {
+                inputBox.value = text;
+                inputBox.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+        recognition.start();
     }
-    recognition.start();
-}
-</script>
+    </script>
 """, height=100)
 
-# Text or Speech input
-query = st.experimental_get_query_params().get("input", [""])[0]
-user_input = st.text_input("💬 Or type your English sentence:", value=query)
+# Manual or speech-based input
+user_input = st.text_input("💬 Or type your English sentence:")
 
 if user_input:
     result = english_to_emojica(user_input)
