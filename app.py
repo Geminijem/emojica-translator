@@ -16,6 +16,7 @@ emoji_to_english = {
 english_to_emoji = {v: k for k, v in emoji_to_english.items()}
 filler_words = {"a", "an", "the", "to", "is", "are", "was", "were", "am", "be"}
 
+# ✅ Translate function
 def english_to_emojica(sentence):
     words = sentence.lower().split()
     translated = []
@@ -26,56 +27,39 @@ def english_to_emojica(sentence):
         translated.append(emoji)
     return " ".join(translated)
 
-# 🧠 Random Emoji of the Day
-today_emoji = random.choice(list(emoji_to_english.keys()))
-
-# 🧠 Check user guess
-def check_guess(user_input, actual_answer):
-    return user_input.strip().lower() == actual_answer.lower()
-
-# ✅ Streamlit UI
-st.set_page_config(page_title="Emojica Translator", page_icon="📘")
+# ✅ App UI
 st.title("📘 Emojica Translator")
 
-# 🎙️ Voice input (Mobile Only - not working on Streamlit Cloud)
-st.markdown("🎙️ Tap mic to speak (mobile only):")
-st.components.v1.html("""
-<button onclick="startDictation()">🎤 Speak</button>
-<input id="result" style="width:100%; font-size:18px; margin-top:10px;" placeholder="Your speech will appear here...">
-
-<script>
-function startDictation() {
-    var recognition = new webkitSpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.onresult = function(event) {
-        document.getElementById('result').value = event.results[0][0].transcript;
-        document.dispatchEvent(new Event("input"));
-    }
-    recognition.start();
-}
-</script>
-""", height=130)
-
-# ✍️ Text Input for Translation
-user_input = st.text_input("💬 Or type your English sentence:", key="speech_input")
-if st.button("Translate to Emojica"):
-    if user_input:
-        result = english_to_emojica(user_input)
-        st.markdown("### ➡️ Emojica:")
-        st.markdown(f"**{result}**")
+# 🔤 Text Input Translator
+st.header("📝 English ➡️ Emojica")
+text_input = st.text_input("💬 Type your English sentence:")
+if st.button("Translate"):
+    if text_input:
+        result = english_to_emojica(text_input)
+        st.success(f"➡️ **{result}**")
     else:
-        st.warning("Please enter or speak a sentence.")
+        st.warning("Please enter a sentence.")
 
-st.markdown("---")
+# 🎯 Game Section
+st.header("🎯 Emoji of the Day - Guess the Meaning")
 
-# 🎯 Emoji Guessing Game
-st.header("🧠 Guess the Emoji Meaning!")
-st.markdown(f"**Emoji of the Day:** {today_emoji}")
-user_guess = st.text_input("What does this emoji mean?")
+# 🧠 State to keep the same emoji
+if "emoji_question" not in st.session_state:
+    st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
+if "score" not in st.session_state:
+    st.session_state.score = 0
 
-if user_guess:
-    correct_answer = emoji_to_english[today_emoji]
-    if check_guess(user_guess, correct_answer):
-        st.success("🎉 Correct! Great job!")
+st.subheader(f"🧐 What does this emoji mean? → {st.session_state.emoji_question}")
+user_guess = st.text_input("Your guess (one word, lowercase):", key="quiz_guess")
+
+if st.button("Submit Guess"):
+    correct = emoji_to_english[st.session_state.emoji_question]
+    if user_guess.strip().lower() == correct:
+        st.success("✅ Correct!")
+        st.session_state.score += 1
+        st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
     else:
-        st.error(f"❌ Oops! The correct answer is **{correct_answer}**.")
+        st.error(f"❌ Wrong. It means **{correct}**.")
+        st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
+
+st.info(f"🏆 Your score: {st.session_state.score}")
