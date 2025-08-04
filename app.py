@@ -1,13 +1,14 @@
 import streamlit as st
+import datetime
 import random
 import json
-from fpdf import FPDF
-import base64
-from gtts import gTTS
-import tempfile
 import os
+import tempfile
+import base64
+from fpdf import FPDF
+from gtts import gTTS
 
-# ✅ Emojica Dictionary
+# ---------- Emojica Dictionaries ----------
 emoji_to_english = {
     "🙋": "i", "👉": "you", "👥": "we", "👨": "he", "👩": "she", "🤖": "ai",
     "👨‍⚕️": "doctor", "🧑‍🎓": "student", "👨‍🏫": "teacher", "👮": "police",
@@ -18,21 +19,23 @@ emoji_to_english = {
     "🌅": "tomorrow", "🕒": "today", "🕘": "morning", "🌃": "night", "🔥": "lot",
     "❓": "question", "😂": "laugh", "😢": "sad", "😡": "angry", "😄": "happy",
     "😐": "neutral", "🏥": "hospital", "🏫": "school", "🏠": "home", "🚗": "car",
-    "📱": "phone", "💻": "computer", "📧": "email", "📦": "package"
+    "📱": "phone", "💻": "computer", "📧": "email", "📦": "package",
+    "😀": "happy", "😃": "smile", "😁": "big smile", "😆": "laugh",
+    "😅": "sweat", "🤣": "rolling on floor laughing", "😭": "crying", "😉": "wink",
+    "😗": "kiss", "😙": "blow kiss", "😚": "sweet kiss", "😘": "kissing heart",
+    "🥰": "in love", "😍": "heart eyes", "🤩": "star eyes", "🥳": "party",
+    "🫠": "melting", "🙃": "upside down", "🙂": "smile", "🥲": "tearful smile",
+    "🥹": "crying with smile", "😊": "blushing smile", "☺️": "smiling",
+    "🧐": "serious", "🤗": "hug", "🤭": "shy", "🤫": "quiet", "🤐": "zipper mouth",
+    "😱": "scream", "🤪": "crazy", "😜": "playful", "😝": "silly", "😛": "cheeky"
 }
 english_to_emoji = {v: k for k, v in emoji_to_english.items()}
 filler_words = {"a", "an", "the", "to", "is", "are", "was", "were", "am", "be", "at", "in", "on", "with"}
 
-# ✅ Translate functions
+# ---------- Translate Functions ----------
 def english_to_emojica(sentence):
     words = sentence.lower().split()
-    translated = []
-    for word in words:
-        if word in filler_words:
-            continue
-        emoji = english_to_emoji.get(word, f"[{word}]")
-        translated.append(emoji)
-    return " ".join(translated)
+    return " ".join([english_to_emoji.get(word, f"[{word}]") for word in words if word not in filler_words])
 
 def emojica_to_english(emoji_sentence):
     symbols = emoji_sentence.strip().split()
@@ -43,15 +46,11 @@ def speak_text(text):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
         tts.save(tmp.name)
         audio_file = open(tmp.name, 'rb')
-        audio_bytes = audio_file.read()
-        st.audio(audio_bytes, format='audio/mp3')
+        st.audio(audio_file.read(), format='audio/mp3')
 
-# ✅ Save/Load Progress
+# ---------- Progress Functions ----------
 def save_progress():
-    progress = {
-        "score": st.session_state.get("score", 0),
-        "history": st.session_state.get("history", [])
-    }
+    progress = {"score": st.session_state.get("score", 0), "history": st.session_state.get("history", [])}
     with open("progress.json", "w") as f:
         json.dump(progress, f)
     st.success("✅ Progress saved!")
@@ -66,45 +65,59 @@ def load_progress():
     else:
         st.warning("⚠️ No saved progress found.")
 
-# ✅ App UI
-st.title("📘 Emojica Translator")
+# ---------- Mood Tracker + Quote ----------
+st.title("🧠 Emojica + Mood Tracker")
+st.markdown("A hybrid translator, tracker, and learning game in one!")
 
-# 🔤 Text Input Translator
+emoji_list = list(set(list(emoji_to_english.keys())))
+quotes = [
+    "Keep going, you're doing great!", "Every day is a new beginning.",
+    "You are stronger than you think.", "Focus on progress, not perfection.",
+    "Believe in yourself!", "Even small steps lead to big change."
+]
+today = str(datetime.date.today())
+random.seed(today)
+quote_of_the_day = random.choice(quotes)
+st.markdown(f"### 🌟 Quote of the Day:\n> *{quote_of_the_day}*")
+
+st.subheader("How are you feeling today?")
+mood = st.selectbox("Pick a mood emoji:", emoji_list)
+
+if st.button("💾 Save Mood"):
+    mood_data = {today: {"emoji": mood, "quote": quote_of_the_day}}
+    with open("mood_data.json", "w") as f:
+        json.dump(mood_data, f)
+    st.success(f"Saved mood for {today}: {mood}")
+
+if st.checkbox("📅 Show Mood History"):
+    if os.path.exists("mood_data.json"):
+        with open("mood_data.json", "r") as f:
+            data = json.load(f)
+        for date, info in data.items():
+            st.write(f"**{date}** - Mood: {info['emoji']} | Quote: _{info['quote']}_")
+    else:
+        st.info("No mood history yet.")
+
+# ---------- Translation Tools ----------
 st.header("📝 English ➡️ Emojica")
-text_input = st.text_area("💬 Type a full English sentence (supports complex ones):")
-
+text_input = st.text_area("💬 Type an English sentence:")
 if st.button("Translate to Emojica"):
     if text_input:
         result = english_to_emojica(text_input)
-        st.success(f"➡️ {result}")
+        st.success(result)
         if st.button("🔊 Speak Output"):
             speak_text(result)
-    else:
-        st.warning("Please enter a sentence.")
 
-# 🔁 Reverse Translation
 st.header("🔁 Emojica ➡️ English")
-emoji_input = st.text_input("🔡 Paste your Emojica sentence:")
+emoji_input = st.text_input("Paste Emojica symbols:")
 if st.button("Translate to English"):
     if emoji_input:
         translated = emojica_to_english(emoji_input)
-        st.success(f"🔠 {translated}")
+        st.success(translated)
         if st.button("🔊 Speak Output (English)"):
             speak_text(translated)
-    else:
-        st.warning("Please enter Emojica symbols.")
 
-# 💾 Save/Load Progress Buttons
-st.header("💾 Progress Control")
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("💾 Save Progress"):
-        save_progress()
-with col2:
-    if st.button("📂 Load Progress"):
-        load_progress()
-
-# 🎯 Game Section
+# ---------- Game Quiz ----------
 st.header("🎯 Emoji of the Day - Guess the Meaning")
 if "emoji_question" not in st.session_state:
     st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
@@ -114,71 +127,66 @@ if "history" not in st.session_state:
     st.session_state.history = []
 
 st.subheader(f"🧐 What does this emoji mean? → {st.session_state.emoji_question}")
-user_guess = st.text_input("Your guess (one word, lowercase):", key="quiz_guess")
-
+guess = st.text_input("Your guess:", key="quiz")
 if st.button("Submit Guess"):
     correct = emoji_to_english[st.session_state.emoji_question]
-    user_answer = user_guess.strip().lower()
-    is_correct = user_answer == correct
-
+    user_ans = guess.strip().lower()
+    is_correct = (user_ans == correct)
     if is_correct:
         st.success("✅ Correct!")
         st.session_state.score += 1
     else:
-        st.error(f"❌ Wrong. It means **{correct}**.")
-
+        st.error(f"❌ Wrong! It means **{correct}**.")
     st.session_state.history.append({
         "emoji": st.session_state.emoji_question,
-        "your_answer": user_answer,
+        "your_answer": user_ans,
         "correct_answer": correct,
         "status": "✅" if is_correct else "❌"
     })
     st.session_state.emoji_question = random.choice(list(emoji_to_english.keys()))
 
-st.info(f"🏆 Your score: {st.session_state.score}")
+st.info(f"🏆 Score: {st.session_state.score}")
 
-# 🧾 Show Game History
-if st.session_state.history:
-    st.header("📜 Game History")
-    for entry in reversed(st.session_state.history):
-        st.markdown(
-            f"{entry['emoji']} → You: {entry['your_answer']} | "
-            f"Correct: {entry['correct_answer']} | {entry['status']}"
-        )
-
-# 📄 Export to PDF
-if st.button("📤 Export History as PDF"):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Emojica Game History", ln=1, align='C')
-    for entry in st.session_state.history:
-        line = f"{entry['emoji']} → You: {entry['your_answer']} | Correct: {entry['correct_answer']} | {entry['status']}"
-        pdf.cell(200, 10, txt=line, ln=1)
-    pdf.output("history.pdf")
-    with open("history.pdf", "rb") as file:
-        b64 = base64.b64encode(file.read()).decode()
-        href = f'<a href="data:application/octet-stream;base64,{b64}" download="emojica_history.pdf">📥 Download History PDF</a>'
-        st.markdown(href, unsafe_allow_html=True)
-
-# 🎮 Emojica Learning Assistant with Levels
+# ---------- Learning Levels ----------
 st.header("🧠 Emojica Learning Levels")
 levels = {
     "Beginner": ["🙋", "👉", "❤️", "📚", "😄"],
     "Intermediate": ["🧠", "✍️", "🗣️", "🕒", "🔄"],
     "Advanced": ["🧑‍🎓", "👨‍⚕️", "📧", "📦", "🌇"]
 }
-level_choice = st.selectbox("📊 Choose your level:", list(levels.keys()))
-
-random_emoji = random.choice(levels[level_choice])
-st.subheader(f"👁️ What does this mean → {random_emoji}")
-user_learn_guess = st.text_input("Your answer (type 'skip' to see the answer):", key="learn_guess")
-
+level_choice = st.selectbox("📊 Choose level:", list(levels.keys()))
+learn_emoji = random.choice(levels[level_choice])
+st.subheader(f"👁️ What does this mean → {learn_emoji}")
+learn_guess = st.text_input("Your answer ('skip' to reveal):", key="learn")
 if st.button("Check Answer"):
-    correct_meaning = emoji_to_english[random_emoji]
-    if user_learn_guess.strip().lower() == correct_meaning:
-        st.success("🎉 Correct! Great job learning.")
-    elif user_learn_guess.strip().lower() == "skip":
-        st.info(f"ℹ️ It means {correct_meaning}.")
+    meaning = emoji_to_english[learn_emoji]
+    if learn_guess.strip().lower() == meaning:
+        st.success("🎉 Correct!")
+    elif learn_guess.strip().lower() == "skip":
+        st.info(f"It means: **{meaning}**")
     else:
-        st.error(f"😓 Not quite. It actually means {correct_meaning}.")
+        st.error(f"Oops! It means: **{meaning}**")
+
+# ---------- Save/Load + Export ----------
+st.header("💾 Manage Progress")
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("💾 Save Progress"):
+        save_progress()
+with col2:
+    if st.button("📂 Load Progress"):
+        load_progress()
+with col3:
+    if st.button("📤 Export History PDF"):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="Emojica Game History", ln=1, align='C')
+        for entry in st.session_state.history:
+            line = f"{entry['emoji']} → You: {entry['your_answer']} | Correct: {entry['correct_answer']} | {entry['status']}"
+            pdf.cell(200, 10, txt=line, ln=1)
+        pdf.output("history.pdf")
+        with open("history.pdf", "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+            href = f'<a href="data:application/octet-stream;base64,{b64}" download="emojica_history.pdf">📥 Download PDF</a>'
+            st.markdown(href, unsafe_allow_html=True)
