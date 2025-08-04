@@ -41,8 +41,21 @@ def english_to_emojica(sentence):
     return " ".join(translated)
 
 def emojica_to_english(emoji_sentence):
-    symbols = emoji_sentence.strip().split()
-    return " ".join([emoji_to_english.get(e, f"[unknown:{e}]") for e in symbols])
+    # Accurate emoji splitting by comparing known emojis
+    output = []
+    temp = emoji_sentence.strip()
+    while temp:
+        matched = False
+        for emoji in sorted(emoji_to_english, key=len, reverse=True):
+            if temp.startswith(emoji):
+                output.append(emoji_to_english[emoji])
+                temp = temp[len(emoji):].strip()
+                matched = True
+                break
+        if not matched:
+            output.append("[?]")
+            temp = temp[1:]
+    return " ".join(output)
 
 def speak_text(text):
     tts = gTTS(text=text, lang='en')
