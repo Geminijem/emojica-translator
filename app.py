@@ -4,6 +4,7 @@ import json
 from gtts import gTTS
 import tempfile
 import os
+import emoji
 
 # ✅ Emojica Dictionary
 emoji_to_english = {
@@ -17,14 +18,14 @@ emoji_to_english = {
     "❓": "question", "😂": "laugh", "😢": "sad", "😡": "angry", "😄": "happy",
     "😐": "neutral", "🏥": "hospital", "🏫": "school", "🏠": "home", "🚗": "car",
     "📱": "phone", "💻": "computer", "📧": "email", "📦": "package",
-    "😀": "happy", "😃": "smile", "😁": "big smile", "😆": "laugh", "😅": "sweat",
-    "🤣": "rolling on the floor laughing", "😭": "crying", "😉": "wink",
-    "😗": "kiss", "😙": "blow kiss", "😚": "sweet kiss", "😘": "kissing heart",
-    "🥰": "in love", "😍": "heart eyes", "🤩": "star eyes", "🥳": "party",
-    "🫠": "melting", "🙃": "upside down", "🙂": "smile", "🥲": "tearful smile",
-    "🥹": "crying with smile", "😊": "blushing smile", "☺️": "smiling",
-    "🧐": "serious", "🤗": "hug", "🤭": "shy", "🤫": "quiet", "🤐": "zipper mouth",
-    "😱": "scream", "🤪": "crazy", "😜": "playful", "😝": "silly", "😛": "cheeky"
+    "😀": "happy", "😃": "smile", "😁": "big smile", "😆": "laugh",
+    "😅": "sweat", "🤣": "rolling on the floor laughing", "😭": "crying",
+    "😉": "wink", "😗": "kiss", "😙": "blow kiss", "😚": "sweet kiss",
+    "😘": "kissing heart", "🥰": "in love", "😍": "heart eyes", "🤩": "star eyes",
+    "🥳": "party", "🫠": "melting", "🙃": "upside down", "🙂": "smile", "🥲": "tearful smile",
+    "🥹": "crying with smile", "😊": "blushing smile", "☺️": "smiling", "🧐": "serious",
+    "🤗": "hug", "🤭": "shy", "🤫": "quiet", "🤐": "zipper mouth", "😱": "scream",
+    "🤪": "crazy", "😜": "playful", "😝": "silly", "😛": "cheeky"
 }
 english_to_emoji = {v: k for k, v in emoji_to_english.items()}
 filler_words = {"a", "an", "the", "to", "is", "are", "was", "were", "am", "be", "at", "in", "on", "with"}
@@ -36,34 +37,27 @@ def english_to_emojica(sentence):
     for word in words:
         if word in filler_words:
             continue
-        emoji = english_to_emoji.get(word, f"[{word}]")
-        translated.append(emoji)
+        emoji_symbol = english_to_emoji.get(word, f"[{word}]")
+        translated.append(emoji_symbol)
     return " ".join(translated)
 
 def emojica_to_english(emoji_sentence):
-    # Accurate emoji splitting by comparing known emojis
+    emoji_list = [char for char in emoji_sentence if emoji.is_emoji(char)]
     output = []
-    temp = emoji_sentence.strip()
-    while temp:
-        matched = False
-        for emoji in sorted(emoji_to_english, key=len, reverse=True):
-            if temp.startswith(emoji):
-                output.append(emoji_to_english[emoji])
-                temp = temp[len(emoji):].strip()
-                matched = True
-                break
-        if not matched:
-            output.append("[?]")
-            temp = temp[1:]
+    for symbol in emoji_list:
+        word = emoji_to_english.get(symbol)
+        if word:
+            output.append(word)
+        else:
+            output.append(f"[unknown:{symbol}]")
     return " ".join(output)
 
 def speak_text(text):
     tts = gTTS(text=text, lang='en')
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
         tts.save(tmp.name)
-        audio_file = open(tmp.name, 'rb')
-        audio_bytes = audio_file.read()
-        st.audio(audio_bytes, format='audio/mp3')
+        with open(tmp.name, 'rb') as audio_file:
+            st.audio(audio_file.read(), format='audio/mp3')
 
 # ✅ Save/Load Progress
 def save_progress():
@@ -90,7 +84,7 @@ st.title("📘 Emojica Translator")
 
 # 🔤 Text Input Translator
 st.header("📝 English ➡️ Emojica")
-text_input = st.text_area("💬 Type a full English sentence (supports complex ones):")
+text_input = st.text_area("💬 Type a full English sentence:")
 
 if st.button("Translate to Emojica"):
     if text_input:
